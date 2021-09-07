@@ -1,0 +1,16 @@
+#Do lab computers have python? If not, consider py2exe for easy transportable packages.
+
+#-----------------------imports------------------------------#
+
+from pymeasure.instruments.keithley import Keithley2400
+from pymeasure.adapters import VISAAdapter
+
+#-----------------------user block------------------------------#
+
+address = 
+
+#-----------------------main------------------------------#
+VISAAdapter("GPIB::"+str(address)"
+
+#Consider generalizing for all adapter settings.
+
