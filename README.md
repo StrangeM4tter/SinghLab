@@ -1,2 +1,2 @@
 # SinghLab
-Code here for organization purposes
+Code gathered here for organization purposes
