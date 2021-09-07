@@ -12,5 +12,5 @@ address =
 #-----------------------main------------------------------#
 VISAAdapter("GPIB::"+str(address)"
 
-#Consider generalizing for all adapter settings.
+#Consider generalizing for all adapter settings
 
