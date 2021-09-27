@@ -4,13 +4,87 @@
 
 from pymeasure.instruments.keithley import Keithley2400
 from pymeasure.adapters import VISAAdapter
+import pyvisa
+from pymeasure.experiment import Procedure
+from pymeasure.experiment import IntegerParameter
+from pymeasure.experiment import Worker
+import numpy as np
+import pandas as pd
+from time import sleep
+import matplotlib.pyplot as plt
 
 #-----------------------user block------------------------------#
 
-address = 
+address = 19
+SM = Keithley2400("GPIB::"+str(address)+"::INSTR")
+rm = pyvisa.ResourceManager()
 
 #-----------------------main------------------------------#
-VISAAdapter("GPIB::"+str(address)"
+def commandhelp(function):   #can be expanded to other functions
+    if function == "Ohm":
+        gab = {":SENS:FUNC 'RES'" : "Select Resistance function",
+        ":SENS:RES:RANG <n>": "Select Ohms range, n is range", 
+        ":SENS:RES:MOD <name>" : "Select ohms mode, name is MANual or AUTO", 
+        ":SENS:RES:OCOM <state>" : "Enable/disable ohms offset compensation, state is ON or OFF",
+        ":SENS:VOLT:PROT <n>" : "Set voltage compliance n for manual ohms",
+        ":SENS:CURR:PROT <n>" : "Set current compliance n for manual ohms",
+        ":SOUR:FUNC <name>" : "Select source function, name is CURRent or VOLTage",
+        ":SYST:RSEN <state>" : "2-wire/4-wire sensing, state is ON for 4 or OFF for 2",
+        ":OUTP <state>" : "Turn output on or off, state is ON or OFF",
+        ":READ?" : "Trigger and acquire reading"}
+        return gab
+    else:
+        pass
+    
+def simpleres():
+    SM.apply_current()
+    set_current=1e-6
+    
+    SM.source_current=set_current
+    SM.source_current_range=10e-6
+    SM.compliance_voltage=1
+    SM.enable_source()
+    SM.config_buffer(points=11, delay=.01)
+    SM.start_buffer()
+    SM.measure_resistance(nplc=1, auto_range=True)
+    print(SM.resistance)
+    SM.shutdown()
+    
+    
+    res=SM.buffer_data
+    current=[0, 1e-6, 2e-6, 3e-6, 4e-6, 5e-6, 6e-6, 7e-6, 8e-6, 9e-6, 10e-6]
+    plt.plot(current, res)
+    plt.xlabel("Current (A)")
+    plt.ylabel("Resistance (Ohm)")
+    plt.show()                  
+    
+def doremi():
+    SM.triad(262, .1)
+    time.sleep(.1)
+    SM.triad(330, .1)
+    time.sleep(.1)
+    SM.triad(392, .1)
+    
+    
+class SimpleProcedure(Procedure):
+
+
+    #loop iteration parameter
+    iterations = IntegerParameter('Loop Iterations')
+
+    #list defining order and appearance of columns in our data file
+    DATA_COLUMNS = ['Iteration']
+
+    def execute(self):
+        """ Loops over each iteration and emits the current iteration,
+        before waiting for 0.01 sec, and then checking if the procedure
+        should stop
+        """
+        for i in range(self.iterations):
+            self.emit('results', {'Iteration': i})
+            sleep(0.01)
+            if self.should_stop():
+                break
 
 #Consider generalizing for all adapter settings
 
