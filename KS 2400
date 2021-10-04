@@ -20,7 +20,7 @@ SM = Keithley2400("GPIB::"+str(address)+"::INSTR")
 rm = pyvisa.ResourceManager()
 
 #-----------------------main------------------------------#
-def commandhelp(function):   #can be expanded to other functions
+def scpicommhelp(function):   #can be expanded to other functions
     if function == "Ohm":
         gab = {":SENS:FUNC 'RES'" : "Select Resistance function",
         ":SENS:RES:RANG <n>": "Select Ohms range, n is range", 
@@ -37,24 +37,32 @@ def commandhelp(function):   #can be expanded to other functions
         pass
     
 def simpleres():
+    delay=.005
     SM.apply_current()
     set_current=1e-6
-    
     SM.source_current=set_current
     SM.source_current_range=10e-6
     SM.compliance_voltage=1
     SM.enable_source()
-    SM.config_buffer(points=11, delay=.01)
+    SM.config_buffer(points=20, delay=delay)
     SM.start_buffer()
-    SM.measure_resistance(nplc=1, auto_range=True)
-    print(SM.resistance)
+    SM.measure_resistance(nplc=1)
+    #print(SM.resistance)   
     SM.shutdown()
     
     
     res=SM.buffer_data
-    current=[0, 1e-6, 2e-6, 3e-6, 4e-6, 5e-6, 6e-6, 7e-6, 8e-6, 9e-6, 10e-6]
-    plt.plot(current, res)
-    plt.xlabel("Current (A)")
+    lres=len(res)
+    current=[]
+    track=[]
+    a=0
+    while a<=lres:
+        current.append(set_current)
+        track.append(delay*a)
+        a+=1
+    
+    plt.plot(res, track)
+    plt.xlabel("Time (s)")
     plt.ylabel("Resistance (Ohm)")
     plt.show()                  
     
@@ -65,7 +73,7 @@ def doremi():
     time.sleep(.1)
     SM.triad(392, .1)
     
-    
+###########WIP###############################  
 class SimpleProcedure(Procedure):
 
 
@@ -85,6 +93,9 @@ class SimpleProcedure(Procedure):
             sleep(0.01)
             if self.should_stop():
                 break
-
+                
 #Consider generalizing for all adapter settings
+
+
+##test bloc##
 
