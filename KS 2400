@@ -36,6 +36,9 @@ def scpicommhelp(function):   #can be expanded to other functions
     else:
         pass
     
+#Ground Resistance Calibration
+path=#yourpathhere
+
 def simpleres():
     delay=.005
     SM.apply_current()
@@ -53,26 +56,39 @@ def simpleres():
     
     res=SM.buffer_data
     lres=len(res)
+    sta=np.std(res)
+    rmean=np.mean(res)
+    print("Standard deviation: ", sta)
+    print("Average: ", np.mean(res))
+    percerror = ((22000-rmean)/22000)*100
+    print("Percent Error: ", percerror)
     current=[]
-    track=[]
+    track=[]                  #initializing arrays
+    yer=[]
     a=0
-    while a<=lres:
+    while a<lres:
         current.append(set_current)
         track.append(delay*a)
+        yer.append(res[a]*.05)
         a+=1
     
-    plt.plot(res, track)
+    yer=res*.005
+    
+    plot_title="22kOhm, 1e-6 A, Odd power ground"
+    plt.plot(track, res)
     plt.xlabel("Time (s)")
     plt.ylabel("Resistance (Ohm)")
-    plt.show()                  
-    
-def doremi():
-    SM.triad(262, .1)
-    time.sleep(.1)
-    SM.triad(330, .1)
-    time.sleep(.1)
-    SM.triad(392, .1)
-    
+    plt.ylim([21000,21750])
+    plt.title(plot_title)
+    plt.errorbar(track, res, xerr=None, yerr=yer)
+    plt.show()    
+    filename=plot_title+'.csv'
+    with open(filename, 'w', newline='') as csvfile:
+        resdata = csv.writer(csvfile, delimiter=',')
+        resdata.writerow(["Resistance", res, "Time", track, "Standard Deviation", sta])
+        csvfile.close()
+        
+
 ###########WIP###############################  
 class SimpleProcedure(Procedure):
 
