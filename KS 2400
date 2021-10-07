@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 #-----------------------user block------------------------------#
 
-address = 19
+address = 19     #check with resource manager if not sure, or just restart KS to see it on startup
 SM = Keithley2400("GPIB::"+str(address)+"::INSTR")
 rm = pyvisa.ResourceManager()
 
@@ -38,8 +38,8 @@ def scpicommhelp(function):   #can be expanded to other functions
     
 #Ground Resistance Calibration
 path=#yourpathhere
-
-def simpleres():
+def simpleres(trueres, shutdown=True):
+    trueres=trueres
     delay=.005
     SM.apply_current()
     set_current=1e-6
@@ -51,7 +51,10 @@ def simpleres():
     SM.start_buffer()
     SM.measure_resistance(nplc=1)
     #print(SM.resistance)   
-    SM.shutdown()
+    if shutdown == True:
+        SM.shutdown()
+    else:
+        pass
     
     
     res=SM.buffer_data
@@ -59,8 +62,8 @@ def simpleres():
     sta=np.std(res)
     rmean=np.mean(res)
     print("Standard deviation: ", sta)
-    print("Average: ", np.mean(res))
-    percerror = ((22000-rmean)/22000)*100
+    print("Average: ", rmean)
+    percerror = ((trueres-rmean)/trueres)*100
     print("Percent Error: ", percerror)
     current=[]
     track=[]                  #initializing arrays
@@ -74,20 +77,20 @@ def simpleres():
     
     yer=res*.005
     
-    plot_title="22kOhm, 1e-6 A, Odd power ground"
+    plot_title=str(trueres)+"Ohm, 1e-6 A, Odd and wire ground"
     plt.plot(track, res)
     plt.xlabel("Time (s)")
     plt.ylabel("Resistance (Ohm)")
-    plt.ylim([21000,21750])
     plt.title(plot_title)
+    plt.ylim(21200,21500)
     plt.errorbar(track, res, xerr=None, yerr=yer)
     plt.show()    
     filename=plot_title+'.csv'
     with open(filename, 'w', newline='') as csvfile:
         resdata = csv.writer(csvfile, delimiter=',')
-        resdata.writerow(["Resistance", res, "Time", track, "Standard Deviation", sta])
+        resdata.writerow(["Resistance", res, "Time", track, "Standard Deviation", sta, "Average", rmean, "Percent Error", percerror])
         csvfile.close()
-        
+   
 
 ###########WIP###############################  
 class SimpleProcedure(Procedure):
