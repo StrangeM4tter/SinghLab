@@ -1,0 +1,57 @@
+#Table of values from Campbell's Microelectronics Fabrication Ed. 3
+
+import numpy as np
+import cmath
+import math
+
+def Growth(wetness, time, initox, temp):
+    AcceptT = [800, 920, 1000, 1100, 1200]
+    ABrakDry={800: .370, 920: .235, 1000: .165, 1100: .09, 1200: .04}
+    BBrakDry={800: .0011, 920: .0049, 1000: .0117, 1100: .027, 1200: .045}
+    TBrak={800: 9, 920: 1.4, 1000: .37, 1100: .076, 1200: .027}
+    ABrakWet={920: .5, 1000: .226, 1100: .11, 1200: .05}
+    BBrakWet={920: .203, 1000: .287, 1100: .510, 1200: .720}
+    if AcceptT.count(temp) == 1:
+        #print(temp)
+        if wetness ==  "dry" or wetness == "Dry":
+            #print(wetness)
+            A = ABrakDry[temp]
+            B = BBrakDry[temp]
+            if initox>250:
+                Tau=0
+            else:
+                Tau = TBrak[temp]
+            finaltox1= (-A+cmath.sqrt(A**2+(4*B*(time+Tau))))/2
+            finaltox2= (-A-cmath.sqrt(A**2+(4*B*(time+Tau))))/2
+            finaltox1=finaltox1.real
+            finaltox2=finaltox2.real
+            if initox>250:
+                finaltox1=finaltox1+initox
+                finaltox2=finaltox2+initox
+            if finaltox1>finaltox2:
+                finaltox=finaltox1
+            else:
+                finaltox=finaltox2
+            print("Final oxide thickness is:", finaltox, "micrometers")
+        elif wetness == "wet" or wetness == "Wet":
+            if temp==800:
+                print("No wet oxidation available for 800K")
+            else:
+                A= ABrakWet[temp]
+                B= BBrakWet[temp]
+                finaltox1= (-A+cmath.sqrt(A**2+(4*B*(time))))/2
+                finaltox2= (-A-cmath.sqrt(A**2+(4*B*(time))))/2
+                finaltox1=finaltox1.real
+                finaltox2=finaltox2.real
+                if initox>250:
+                    finaltox1=finaltox1+initox
+                    finaltox2=finaltox2+initox
+                if finaltox1>finaltox2:
+                    finaltox=finaltox1
+                else:
+                    finaltox=finaltox2
+            print("Final oxide thickness is:", finaltox, "micrometers")
+    else:
+        print("Temp not valid, must be one of these: ", str(AcceptT))
+
+Growth("Dry", 2, 0, 1200)
