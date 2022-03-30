@@ -1,0 +1,64 @@
+path=#yourpathhere
+address = 19 #might be different sourcemeter to sourcemeter
+SM = Keithley2400("GPIB::"+str(address)+"::INSTR")
+
+
+def RvTroom(currlow, currhigh, currstep, shutdown=True):
+    delay=.005
+    SM.apply_current()
+    set_current=currlow
+    SM.source_current=set_current
+    SM.source_current_range=currhigh+1e-9
+    currentstep=currstep
+    SM.compliance_voltage=1
+    SM.set_trigger_counts(1,10)
+    SM.measure_voltage()
+    voltx = []
+    curr = []
+    res = []
+    a=0
+    SM.enable_source()
+    while a<100:
+        voltx.append(np.mean(SM.voltage))
+        curr.append(set_current)
+        set_current+=currentstep
+        SM.source_current=set_current
+        a+=1
+    
+    if shutdown == True:
+        SM.shutdown()
+    else:
+        pass
+    
+    for i in range(len(curr)):
+        res.append((voltx[i]+.00000000000001)/(curr[i]+.00000000000001))
+    #print(res)
+    sta=np.std(res)
+    rmean=np.mean(res)
+    print(voltx)
+    print(curr)
+    print(res)
+    print("Standard deviation: ", sta)
+    print("Average: ", np.mean(res))
+    track=[]                  #initializing arrays
+    a=0
+    curl=len(curr)
+    while a<curl:
+        track.append(delay*a)
+        a+=1
+    #print(yer)
+    #print(current)
+    plot_title="IvR 80 pA Thermometer (outer) bigsweep"
+    plt.plot(curr, res)
+    plt.xlabel("Current (A)")
+    plt.ylabel("Resistance (Ohms)")
+    plt.title(plot_title)
+    plt.ylim(168000,176000)
+    #plt.errorbar(track, res, xerr=None, yerr=yer)
+    plt.show()    
+    filename=plot_title+'.csv'
+    with open(filename, 'w', newline='') as csvfile:
+        resdata = csv.writer(csvfile, delimiter=',')
+        resdata.writerow(["Resistance", res, "Current", curr, "Voltage", voltx, "Average", rmean])
+        csvfile.close()
+RvTroom(-500e-9,500e-9, 10e-9)
