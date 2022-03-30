@@ -116,5 +116,5 @@ class SimpleProcedure(Procedure):
 #Consider generalizing for all adapter settings
 
 
-##test bloc##
+##test bloc###
 
