@@ -1,0 +1,106 @@
+# code created for remote control and measuring of voltage on a KS2400 and temperature of sample using a KS2400 and TMP36 diode.
+
+#For importing and processing TMP36/KS2400 readings.
+#Consider adjusting this code based on your hopefully standardized file names.
+#This script was meant for a constant current source over the device.
+#Notice, contains errors and clear paths of improvement
+
+import csv
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+Templist=[296,300,313,320,323,334,341,350,357,359,362]
+def TMPcrunch(templist):
+    realtemp=[]
+    meanKSvolt=[]
+    avtemp=[]
+    for i in templist:
+        pathtmp=r"C:\Users\scten\TMP36 Temp and Voltage at 1e-07 A at "+str(i)+" Kelvin"
+        pathKS= r"C:\Users\scten\Voltage at 1e-07 Amps at "+str(i)+" Kelvin.csv"
+        with open(pathtmp, 'r', newline='') as csvfile:
+            data = csv.reader(csvfile, delimiter=',')
+            for row in data:
+                #print(row)
+                TEMP=row[5]
+                realtemp.append(TEMP)
+            csvfile.close()
+        with open(pathKS, 'r', newline='') as csvfile:
+            data = csv.reader(csvfile, delimiter=',')
+            for row in data:
+                AVKSVOLT=row[7]
+                meanKSvolt.append(AVKSVOLT)
+                #print(row)
+            csvfile.close()
+    return meanKSvolt
+#after converting the writing to pandas form in the KS2400 script, fixing the above should be easier.
+
+def yerr(templist):
+    vstd=[]
+    for i in templist:
+        pathKS= r"C:\Users\scten\Voltage at 1e-07 Amps at "+str(i)+" Kelvin.csv"
+        with open(pathKS, 'r', newline='') as csvfile:
+            data = csv.reader(csvfile, delimiter=',')
+            for row in data:
+                #print(row)
+                std=row[5]
+                vstd.append(float(std))
+            csvfile.close()
+    return vstd
+    
+volts=TMPcrunch(Templist)
+vstd= yerr(Templist)
+res=[]
+#print(volts)
+for i in volts:
+    i=float(i)
+    res.append(i/100e-9)
+
+
+from sklearn.linear_model import LinearRegression as LR
+from sklearn.metrics import r2_score
+#print(volts)
+for i in volts:
+    #print(i)
+    i=float(i)
+    i=np.format_float_scientific(i) 
+#volts=np.array(volts)
+#print(Templist)
+
+
+plt.scatter(Templist, volts)
+plt.gca().invert_yaxis()
+plt.title("Temperature vs Device Voltage")
+plt.ylabel("Voltage (V)")
+plt.xlabel("Temperature (K)")
+#plt.ticklabel_format(axis='both', style='sci', scilimits=(0,0))
+volts=np.array(volts).reshape((-1,1))
+Templist=np.array(Templist).reshape((-1,1))
+X,Y=Templist,volts
+def lin(B, x):
+    y=B[0]*x + B[1]
+    return y
+mod=LR().fit(X,Y)
+param=[mod.coef_,mod.intercept_]
+predic=lin(param,X)
+
+yush=[]
+for i in Y:
+    yush.append(float(i))
+dic=[]
+#print(predic)
+for i in predic:
+    dic.append(float(i))
+#print(vstd)
+std=[]
+for i in vstd:
+    std.append(float(i))
+yerr1=[]
+#plt.errorbar(Templist, predic, xerr=2, yerr=vstd) 
+print("Intercept:",mod.intercept_,"\nSlope:",mod.coef_)
+R2=r2_score(yush,dic)
+print("R_2:",R2)
+
+#xerr will consist of 2 degrees from datasheet and 1 std from average temp. But this is assuming the temp is non-int data recorded from TMP, need a redo with the pandas writing done so they can be actual numbers.
+#yerr will be 1 std of device voltage + noise, need to find a way to categorize noise.
+
