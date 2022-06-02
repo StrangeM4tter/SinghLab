@@ -1,0 +1,13 @@
+import csv
+import pandas as pd
+
+tes={"Voltage":[1,2,3,4,5,6,7],"Temperature":275 ,"Boneless": "Yes"}    #Notice it accepts a variety of inputs, and will PRESERVE the type
+data=pd.DataFrame(data=tes)                                                         #Save your dictionary to a pandas Dataframe
+filename="Test.csv"                                                                  #Better to iterate through a list of integers than one string (standard csv)
+data.to_csv(filename, index=0)
+doc=pd.read_csv(filename)
+print(doc["Voltage"])         #supports calling the key
+for i in doc["Voltage"]:
+    print(i)
+    print(type(i))      #sanity checks
+   
