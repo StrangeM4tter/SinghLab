@@ -1,0 +1,67 @@
+#For importing and processing TMP36/SRS830 readings.
+#Consider adjusting this code based on your hopefully standardized file names.
+#This script was meant for a AC current source over the device, you can achieve this with an AWG and a resistor. Pretty compatible with the "AWGlockin" script.
+
+import csv
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+Templist=[302,306,312,321,327,329,335,339,342,344,348,355,358,362]
+def TMPcrunch(templist):
+    temperr=[]
+    meanKSvolt=[]
+    avtemp=[]
+    KSerror=[]
+    for i in templist:
+        pathtmp=r"C:\Users\scten\Desktop\Business stuff\Lab Shit\Grad Lab\data\AWGlockin\calibration\TMP36 Temp and Voltage at 1e-07 A at "+str(i)+" Kelvin"
+        pathKS= r"C:\Users\scten\Desktop\Business stuff\Lab Shit\Grad Lab\data\AWGlockin\calibration\Device Vrms at 1e-07 A at "+str(i)+" K.csv"
+        tempdat , devdat = pd.read_csv(pathtmp) , pd.read_csv(pathKS)
+        temperr.append(tempdat["Temp error"][0])
+        avtemp.append(tempdat["Average Temp (K)"][0])
+        KSerror.append(devdat["X STD"][0])
+        meanKSvolt.append(devdat["X mean"][0])
+    pack={"Average dev Vrms":meanKSvolt,"Voltage error":KSerror,"Average Temp":avtemp,"Temp error":temperr}
+    return pack
+
+
+pack=TMPcrunch(Templist)
+volts=pack["Average dev Vrms"]
+vstd=pack["Voltage error"]
+Atemp=pack["Average Temp"]
+temperr=pack["Temp error"]
+
+res=[]
+
+from sklearn.linear_model import LinearRegression as LR
+from sklearn.metrics import r2_score
+
+plt.scatter(Atemp, volts)
+plt.gca().invert_yaxis()
+plt.title("Temperature vs Device Voltage")
+plt.ylabel("Voltage (Vrms)")
+plt.xlabel("Temperature (K)")
+plt.gca().invert_yaxis()
+plt.ylim(np.min(volts)-.0005,np.max(volts)+.0005)
+volts=np.array(volts).reshape((-1,1))
+Atemp=np.array(Atemp).reshape((-1,1))
+X,Y=Atemp,volts
+def lin(B, x):
+    y=B[0]*x + B[1]
+    return y
+mod=LR().fit(X,Y)
+param=[mod.coef_,mod.intercept_]
+predic=lin(param,X)
+
+yush=[]
+for i in Y:
+    yush.append(float(i))
+dic=[]
+
+for i in predic:
+    dic.append(float(i))
+
+plt.errorbar(Atemp, predic, xerr=temperr, yerr=vstd) 
+print("Intercept:",mod.intercept_,"\nSlope:",mod.coef_)
+R2=r2_score(yush,dic)
+print("R_2:",R2)
