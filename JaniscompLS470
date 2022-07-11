@@ -1,0 +1,205 @@
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from RvTcsvcrunch import crunch
+
+#DT470 stuff
+
+background = .00005 #background noise from KS2400 at 10uA, take day of measurements.
+
+p1=r"C:\Users\scten\Desktop\Business stuff\Lab Shit\Grad Lab\data\janis\DTcalibration(natwarm2).csv"
+p2=r"C:\Users\scten\Desktop\Business stuff\Lab Shit\Grad Lab\data\janis\DTcalibration(cooldown).csv"
+fig1,axl = plt.subplots()
+p1=crunch(p1,plt=False)
+p2=crunch(p2,plt=False)
+Realvolt=np.zeros(len(p2["Resistance (ohm)"]))
+Realtemp=np.zeros(len(Realvolt))
+for i in range(len(p2["Resistance (ohm)"])):
+    Realvolt[i]=p2["Resistance (ohm)"][i]*(10e-6)
+
+#CURVE10 ref
+predict={"Voltage":[],"Temperature":[],"dV/dT":[]}
+theo=(3.40,1.65134,-29.8,
+3.60,1.64529,-30.7,
+3.80,1.63905,-31.6,
+4.00,1.63263,-32.7,
+4.20,1.62602,-33.6,
+4.40,1.61920,-34.6,
+4.60,1.61220,-35.4,
+4.80,1.60506,-36.0,
+5.00,1.59782,-36.5,
+5.50,1.57928,-37.6,
+6.00,1.56027,-38.4,
+6.50,1.54097,-38.7,
+7.00,1.52166,-38.4,
+7.50,1.50272,-37.3,
+8.00,1.48443,-35.8,
+8.50,1.46700,-34.0,
+9.00,1.45048,-32.1,
+9.50,1.43488,-30.3,
+10.0,1.42013,-28.7,
+10.5,1.40615,-27.2,
+11.0,1.39287,-25.9,
+11.5,1.38021,-24.8,
+12.0,1.36809,-23.7,
+12.5,1.35647,-22.8,
+13.0,1.34530,-21.9,
+13.5,1.33453,-21.2,
+14.0,1.32412,-20.5,
+14.5,1.31403,-19.9,
+15.0,1.30422,-19.4,
+15.5,1.29464,-18.9,
+16.0,1.28527,-18.6,
+16.5,1.27607,-18.2,
+17.0,1.26702,-18.0,
+17.5,1.25810,-17.7,
+18.0,1.24928,-17.6,
+18.5,1.24053,-17.4,
+19.0,1.23184,-17.4,
+19.5,1.22314,-17.4,
+20.0,1.21440,-17.6,
+21.0,1.19645,-18.5,
+22.0,1.17705,-20.6,
+23.0,1.15558,-21.7,
+24.0,1.13598,-15.9,
+25.0,1.12463,-7.72,
+26.0,1.11896,-4.34,
+27.0,1.11517,-3.34,
+28.0,1.11212,-2.82,
+29.0,1.10945,-2.53,
+30.0,1.10702,-2.34,
+32.0,1.10263,-2.08,
+34.0,1.09864,-1.92,
+36.0,1.09490,-1.83,
+38.0,1.09131,-1.77,
+40.0,1.08781,-1.74,
+42.0,1.08436,-1.72,
+44.0,1.08093,-1.72,
+46.0,1.07748,-1.73,
+48.0,1.07402,-1.74,
+50.0,1.07053,-1.75,
+52.0,1.06700,-1.77,
+54.0,1.06346,-1.78,
+56.0,1.05988,-1.79,
+58.0,1.05629,-1.80,
+60.0,1.05267,-1.81,
+65.0,1.04353,-1.84,
+70.0,1.03425,-1.87,
+75.0,1.02482,-1.91,
+77.35,1.02032,-1.92,
+80.0,1.01525,-1.93,
+85.0,1.00552,-1.96,
+90.0,0.99565,-1.99,
+95.0,0.98564,-2.02,
+100.0,0.97550,-2.04,
+110.0,0.95487,-2.08,
+120.0,0.93383,-2.12,
+130.0,0.91243,-2.16,
+140.0,0.89072,-2.19,
+150.0,0.86873,-2.21,
+160.0,0.84650,-2.24,
+170.0,0.82404,-2.26,
+180.0,0.80138,-2.28,
+190.0,0.77855,-2.29,
+200.0,0.75554,-2.31,
+210.0,0.73238,-2.32,
+220.0,0.70908,-2.34,
+230.0,0.68564,-2.35,
+240.0,0.66208,-2.36,
+250.0,0.63841,-2.37,
+260.0,0.61465,-2.38,
+270.0,0.59080,-2.39,
+273.15,0.58327,-2.39,
+280.0,0.56690,-2.39,
+290.0,0.54294,-2.40,
+300.0,0.51892,-2.40)
+for i in theo:
+    if 0<i<2:
+        predict["Voltage"].append(i)
+    elif i>3:
+        predict["Temperature"].append(i)
+    elif i<0:
+        predict["dV/dT"].append(i)
+        
+#print(predict)
+for i in range(len(Realvolt)):
+    for j in range(len(predict["Voltage"])):
+        if j==len(predict["Voltage"])-1:
+            if predict["Voltage"][j-1]>Realvolt[i]>predict["Voltage"][j]:
+                dvdt=-2.4*(1e-3)
+                voltdif1=Realvolt[i]-predict["Voltage"][j]
+                voltdif2=predict["Voltage"][j-1]-Realvolt[i]
+                if voltdif1<voltdif2:
+                    ntemp=predict["Temperature"][j]+(voltdif1/dvdt) 
+                elif voltdif2<voltdif1:
+                    ntemp=predict["Temperature"][j-1]-(voltdif2/dvdt)
+                Realtemp[i]=ntemp
+            else:
+                pass
+        elif j!=len(predict["Voltage"])-1:
+            if predict["Voltage"][j]>Realvolt[i]>predict["Voltage"][j+1]:
+                dvdt=((predict["dV/dT"][j]+predict["dV/dT"][j+1])/2)*(1e-3)
+                voltdif1=Realvolt[i]-predict["Voltage"][j+1]
+                voltdif2=predict["Voltage"][j]-Realvolt[i]
+                #smoothing. Can be improved with weights but careful with that
+                if voltdif1<voltdif2:
+                    ntemp=predict["Temperature"][j+1]+(voltdif1/dvdt) 
+                elif voltdif2<voltdif1:
+                    ntemp=predict["Temperature"][j]-(voltdif2/dvdt)
+                Realtemp[i]=ntemp
+            else:
+                pass
+GreaterDiffcool=np.zeros(len(Realvolt))
+GreaterDiffnat=np.zeros(len(Realvolt))
+#for i in range(len(Realvolt)):
+    #GreaterDiffcool[i]=(Realtemp[i]-p2["Temperature (K)"][i])
+    #GreaterDiffnat[i]=(Realtemp[i]-p1["Temperature (K)"][len(p1["Temperature (K)"])-i-1])
+#print("Approximate greatest difference in cooldown: ",np.max(GreaterDiffcool),"K at")
+#print("Approximate greatest difference in warmup: ",np.max(GreaterDiffnat),"K at", Realtemp[len(Realtemp)-1-np.where(GreaterDiffnat==np.max(GreaterDiffnat))[0]])
+#print("At 200K the temp difference is ",GreaterDiffnat[np.where(Realtemp==200.0046571274298)[0]])
+
+
+ex={"Voltage":Realvolt,"Recorded or Real Temperature (K)":Realtemp, "Resistance (Ω)":p2["Resistance (ohm)"]}
+ex=pd.DataFrame(data=ex)
+
+#p1.plot(ax=axl,x="Temperature (K)", 
+            #y="Resistance (ohm)",
+            #logy= False, 
+            #grid=True, 
+            #kind="scatter", 
+            #s=1,
+            #c='red',
+            #yerr=background/10e-6,
+            #marker=',',
+            #xlim = (np.min(p1["Temperature (K)"]),np.max(p1["Temperature (K)"])),
+            #ylim = (np.min(p1["Resistance (ohm)"]),np.max(p2["Resistance (ohm)"])),
+            #title="Resistance vs Temperature")
+p2.plot(ax=axl,x="Temperature (K)", 
+            y="Resistance (ohm)",
+            logy= True, 
+            grid=True, 
+            kind="scatter", 
+            s=1,
+            c='blue',
+            marker=',',
+            xlabel="Recorded or Real Temperature",
+            xlim = (np.min(p2["Temperature (K)"]),np.max(p2["Temperature (K)"])),
+            ylim = (np.min(p2["Resistance (ohm)"]),np.max(p2["Resistance (ohm)"])),
+            yerr=background/10e-6,
+            title="Resistance vs Temperature")
+ex.plot(ax=axl,x="Recorded or Real Temperature (K)", 
+            y="Resistance (Ω)",
+            logy= False, 
+            grid=True, 
+            kind="scatter", 
+            s=1,
+            c='green',
+            #xerr=GreaterDiff,
+            yerr=background/10e-6,
+            marker=',',
+            xlabel="Recorded or Real Temperature",
+            xlim = (np.min(p2["Temperature (K)"]),np.max(p2["Temperature (K)"])),
+            ylim = (np.min(p2["Resistance (ohm)"]),np.max(p2["Resistance (ohm)"])+1000),
+            title="Resistance vs Measured Temperature (Cooldown)")
+axl.legend(["Controller Reported Temperature", "Actual Sample Temperature"])
