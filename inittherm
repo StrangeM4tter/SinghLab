@@ -1,0 +1,39 @@
+#0
+import pandas as pd
+import numpy as np
+import pyvisa
+from pymeasure.adapters import VISAAdapter
+from pymeasure.instruments.srs import SR830
+from pymeasure.instruments.agilent import Agilent33220A as AGIL
+from pymeasure.instruments.keithley import Keithley2400
+
+#default is SRS830->8,  Agilent 33220A -> 10,   Agilent 33600A -> Ask+copy+paste (different format)   Lakeshore -> 12
+
+# If using 33600A:
+    #set AWGalt=True 
+#Modifying to include lakeshore temp controller 335 (the one attached to the Janis)
+
+
+def initialize(SRSadd,AWGadd,LSadd,p=True, ask=False, AWGalt=True):
+    if ask==True:
+        rm = pyvisa.ResourceManager()
+        return print(rm.list_resources())
+    else:
+        rm = pyvisa.ResourceManager()
+        SRS=SR830('GPIB0::'+str(SRSadd)+'::INSTR')
+        SRSdebug=rm.open_resource('GPIB0::'+str(SRSadd)+'::INSTR')
+        if type(LSadd)==int:
+            LS=rm.open_resource('GPIB0::'+str(LSadd)+'::INSTR')
+        else:
+            LS=None
+        if AWGalt==True:
+            AWG=rm.open_resource('USB0::0x0957::0x5707::MY53803283::INSTR')#note this is somewhat unclear, I had to run the function and "ask" for an address first, then copy and paste in the line
+            #AWG=None
+        else:
+            AWG=AGIL('GPIB0::'+str(AWGadd)+'::INSTR')
+        Z = [] ; Z.append(SRS) ; Z.append(AWG) ; Z.append(LS)
+        if p==True:
+            print("SRS:",SRSdebug.query("*IDN?"),"AWG:",AWG.query("*IDN?"),"Temp Controller:",LS.query("*IDN?"))
+            return Z
+        else:
+            return Z
