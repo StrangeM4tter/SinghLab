@@ -1,0 +1,149 @@
+from tkinter import *
+from datetime import datetime
+from pymeasure.instruments.keithley import Keithley2400
+from pymeasure.adapters import VISAAdapter
+import pyvisa
+import pandas as pd
+import numpy as np
+from inittherm import initialize
+
+Z=initialize(8,0,12,AWGalt=True)
+AWG=Z[1] ; SRS=Z[0] ; LS=Z[2]
+
+
+running = False
+x=0
+now=datetime.now()
+setvolt=.1
+setcurr=setvolt/(1e6)
+
+def SRSdef(c1,c2):
+    SRS.input_config='A'
+    SRS.input_coupling='AC'
+    SRS.reference_source='External'
+    SRS.channel11=c1
+    SRS.channel12=c2
+SRSdef("X","Y")
+    
+def setAWGdef(AWGinst, func, freq, Vpeak): #youll have to look up the function SCPI's in the user manual. may include them here later.
+    AWGinst.write("sour1:FUNC "+str(func)) #set output funciton to sin (default anwyway)
+    AWGinst.write("outp1:sync 1") #enable sync
+    AWGinst.write("outp1:sync:sour CH1") #sync with channel 1
+    AWGinst.write("sour1:freq "+str(freq)) #set frequency
+    AWGinst.write("sour1:volt "+str(Vpeak)) #set peak amplitude in V
+    paramdic = {"Function":func,"Frequency":freq,"Peak Voltage":Vpeak} #Do what you want with this
+    return paramdic
+setAWGdef(AWG, "Sin",)
+
+def emptystack():
+    Stack={"Time": [],
+           "Temperature": [],
+           "Resistance": [],
+           "RMS X Volt": [], 
+           "RMS Y Volt": [],
+           "Theta": [], 
+           "RMS Current": [],
+          }
+    return Stack
+
+def readtemp(Lakeshore, chan):
+    s=Lakeshore.query("KRDG? "+str(chan))
+    st=s
+    return st[1:]
+    
+def disable_heat(LS):
+    LS.write("RANGE 1,0")
+    
+    
+    
+    
+    
+
+
+Stack=emptystack()
+rm = pyvisa.ResourceManager()
+form="%m/%d/%Y %H:%M:%S.%f"
+def snapsh(AWGinst, SRSinst, DCoffset,autoff=True):
+    AWGinst.write("outp1 on")
+    AWGinst.write("sour1:volt:offs "+str(DCoffset))
+    Xbuf=[]
+    Ybuf=[]
+    THbuf=[]
+    OFFSbuf=[]
+    X=SRSinst.x
+    Y=SRSinst.y
+    TH=SRSinst.theta
+    Xbuf.append(X) ; Ybuf.append(Y) ; THbuf.append(TH) ; OFFSbuf.append(DCoffset)
+    if autoff==True:
+        AWGinst.write("outp1 off")
+    out={"X": Xbuf, "Y": Ybuf, "Theta": THbuf}
+    datout=pd.DataFrame(data=out)
+    return datout
+
+
+#place iterationary calls here
+def scanning():
+    global AWG, SRS, LS
+    if running:
+        r=readtemp(LS,1)
+        ob=snapsh(AWG, SRS, 0,autoff=False)
+        Stack["RMS X Volt"].append(ob["X"][0])
+        Stack["RMS Y Volt"].append(ob["Y"][0])
+        Stack["Theta"].append(ob["Theta"][0])
+        Stack["Time"].append(datetime.now().strftime(form))
+        Stack["RMS Current"].append(setcurr/np.sqrt(2))
+        Stack["Temperature"].append(r.rstrip()) # weird format
+        Stack["Resistance"].append(ob["X"][0]/(setcurr/np.sqrt(2)))
+    root.after(10,scanning)
+
+#place any initializing stuff here
+def startR():
+    global running
+    global AWG, SRS
+    AWGref=setAWGdef(AWG,"SIN",29,setvolt)
+    SRSdef('X','Y')
+    running = True
+    
+#place shutdown procedures here
+def stopR():
+    global running
+    global AWG, SRS
+    AWG.write("outp1 off")
+    running = False
+
+#place data organization here
+def save():
+    global Stack
+    Stack=pd.DataFrame(data=Stack)
+    filename=r"C:\Users\scten\Desktop\Business stuff\Lab Shit\Grad Lab\data\janis\80pA\natRvTprof.csv"
+    Stack.to_csv(filename, index=0)
+
+#reset stacks here
+def reset():
+    global running
+    running = False
+    global Stack
+    Stack=emptystack()
+
+    
+    
+    
+root = Tk()
+root.title("Setup Actions")
+root.geometry("100x100")
+
+app = Frame(root)
+app.grid()
+
+startR = Button(app, text="Start RvT", command=startR)
+stopR = Button(app, text="Stop RvT", command=stopR)
+save = Button(app, text="Save", command=save)
+reset = Button(app, text="Reset", command=reset)
+
+startR.grid()
+stopR.grid()
+save.grid()
+reset.grid()
+
+root.after(1000, scanning)  # After 1 second, call scanning
+root.mainloop()
